@@ -11,7 +11,6 @@ This project falls into four sections:
 
 * K means
 * CNN
-* RNN
 * two linear models stacked in a trench coat
 
 

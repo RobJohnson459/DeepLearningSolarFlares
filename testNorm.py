@@ -11,3 +11,7 @@ tnsr, ys = normalizer.subSample(path, earlyStop=6, device='cpu')
 print(f'Shape of tensor: should be 30, 33, 60: {tnsr.shape}')
 print(f'lenght of ys: should be 30: {len(ys)}')
 print(ys)
+
+tnsr, ys = normalizer.subSample(path, earlyStop=-1, device='cpu')
+print(f'shape of maximum subsample: should be nx33x60: {tnsr.shape}')
+print(f'mean of all labels: should be 2: {np.mean(ys)}')

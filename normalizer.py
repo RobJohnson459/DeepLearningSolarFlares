@@ -148,7 +148,8 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 	random.shuffle(finalIndicies)
 
 	tnsr = torch.Tensor().new_empty((stop*5, 33, 60), device=device) #Declare a tensor that can hold all our data
-	pos = 0 # reuse this variable, since we don't need it anymore for what it was doing
+	pos = -1 # reuse this variable, since we don't need it anymore for what it was doing
+	labels = [] # list to hold the labels
 	# read in the lines dictated by finalIndicies
 	for location in finalIndicies:
 		file.seek(location)
@@ -158,7 +159,7 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 		d: dict = json.loads(line)
 		pos += 1
 		if pos % 100 == 0:
-			print(f'Now loading event {pos}/{stop*5}')
+			print(f'Now loading event {pos+1}/{stop*5}')
 		for _, v in d.items(): # we use the _ because we don't want the ID.
 			# append the label to our list
 			labels.append(flares[v['label']])
@@ -170,6 +171,6 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 				location = magDict[key]
 				# Get the measurements out of the time series dictionary
 				for timeStamp, measurement in timeDict.items():
-					tnsr[row][location][int(timeStamp)] = measurement
-	print(f'{pos} lines loaded.')
-	return tnsr
+					tnsr[pos][location][int(timeStamp)] = measurement
+	print(f'{pos+1} lines loaded.')
+	return tnsr, labels

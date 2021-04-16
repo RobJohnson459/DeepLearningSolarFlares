@@ -10,6 +10,8 @@ def counter(filename, lines=-1):
 
 	hist = [0,0,0,0,0]
 	for line in file:
+		if 'nan' in line or 'NaN' in line:
+			continue
 		cat = line.split(":")[2].split(',')[0]
 		if row == lines:
 			return hist

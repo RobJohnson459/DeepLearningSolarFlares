@@ -41,6 +41,7 @@ flares = {'X':0, 'M':1, 'C':2, 'B':3, 'Q':4}
 
 def counter(filename, lines=-1):
 	file = open(filename, mode='r')
+	print(f'Now reading {filename}')
 	# This is an iterator to exit early
 	row = 0
 	# This dictionary corresponds to the five levels of flare events, from highest to lowest, with Q meaning quiet, or no flare.
@@ -64,7 +65,7 @@ def counter(filename, lines=-1):
 
 
 	# Get the data from the JSON file, then return it as a tensor of input data and a list of labels
-def getDataFromJSON(path="data/train_partition1_data.json", device='cpu', earlyStop=-1):
+def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device='cpu'):
 	''' 
 	path is the path to the files, device is where to store it (CUDA), earlyStop is how many lines to 
 	read if you don't want the entire file read. The default is -1, which will read the entire file.

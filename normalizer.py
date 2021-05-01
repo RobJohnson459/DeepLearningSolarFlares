@@ -1,8 +1,10 @@
+from datetime import datetime
 import random
 import torch
 import json
 import numpy as np
 import torch.nn as nn
+from torch.utils.data import DataLoader
 magDict = {
 	'TOTUSJH': 0,
 	'TOTBSQ': 1,
@@ -323,3 +325,27 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 
 
 	return model
+
+def getTotalAccuracy(m1, m2, m3, x, y): #, unbalanced=True
+	o1 = torch.argmax(m1(x))
+	o2 = torch.argmax(m2(x))
+	o3 = torch.argmax(m3(x))
+	c1 = o1 == y.clone().detach()
+	c2 = o2 == y.clone().detach()
+	c3 = o3 == y.clone().detach()
+	return np.mean(np.mean(c3),np.mean(c2),np.mean(c1))
+
+def tester(model, pathToWrite=None):
+	if pathToWrite is None:
+		pathToWrite = f'results/submission{datetime.now().strftime("%d_%H:%M")}.csv'
+	# Get test data
+	test, ids, _ = getDataFromJSON(path='data/test_4_5_data.json', test=True, device=device)
+	# get our guesses from the network
+	guesses = torch.argmax(model(test))
+	assert len(ids) == guesses.shape
+	# Open a file to write to
+	file = open(pathToWrite, mode='w')
+	print('Id,Label', file=file)
+	for i in range(len(ids)):
+		print(ids[i], guesses[i], sep=',', file=file)
+	file.close()

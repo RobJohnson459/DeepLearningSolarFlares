@@ -7,7 +7,7 @@ This is the repository for the term project of the authors for the Deep Learning
 The data referenced can be found at https://dmlab.cs.gsu.edu/solar/data/data-comp-2020/
 An explanation of the data is found at https://www.kaggle.com/c/bigdata2020-flare-prediction
 
-This project falls into four sections:
+This project falls into three sections:
 
 * K means
 * naive linear model

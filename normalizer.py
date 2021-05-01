@@ -1,6 +1,7 @@
 import random
 import torch
 import json
+import numpy as np
 magDict = {
     'TOTUSJH': 0,
     'TOTBSQ': 1,
@@ -40,6 +41,17 @@ flares = {'X':0, 'M':1, 'C':2, 'B':3, 'Q':4}
 
 
 def counter(filename, lines=-1):
+	'''
+	This function counts the different types of flares in <filename> to help calculate the weights.
+	I'm not totally sure what a good weight calculation is, so here are some ideas
+
+	#ideas
+	# 1-(weight/np.sum(weight))
+	# .2/weight - this one normalizes so that each class is responsible for 20% of the loss
+	# 1/weight - this is a bit naive, but the classes with fewer items are weighted more.
+	# 1/(weight+1) - makes sure we don't have any pesky zeroes
+	# np.sum(weight)/weight if your learning rate is too low.
+	'''
 	file = open(filename, mode='r')
 	print(f'Now reading {filename}')
 	# This is an iterator to exit early

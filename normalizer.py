@@ -2,6 +2,7 @@ import random
 import torch
 import json
 import numpy as np
+import torch.nn as nn
 magDict = {
 	'TOTUSJH': 0,
 	'TOTBSQ': 1,
@@ -39,12 +40,12 @@ magDict = {
 }
 flares = {'X':0, 'M':1, 'C':2, 'B':3, 'Q':4}
 
-def norm33(X)
+def norm33(X):
 	'''
 	A simple normalizer that normalizes each data field to be between 0 and 1
 	'''
 	for i in range(X.shape[1]): # the number of types of measurements
-		X[:,i,:] -= torch.min(X[:,i,:]
+		X[:,i,:] -= torch.min(X[:,i,:])
 		X[:,i,:] /= torch.max(X[:,i,:]).item()
 	return X
 
@@ -85,12 +86,14 @@ def counter(filename, lines=-1):
 
 
 	# Get the data from the JSON file, then return it as a tensor of input data and a list of labels
-def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device='cpu'):
+def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device='cpu', test=False):
 	''' 
 	path is the path to the files, device is where to store it (CUDA), earlyStop is how many lines to 
 	read if you don't want the entire file read. The default is -1, which will read the entire file.
 	This function returns a tensor containing the data, a list containing the corresponding labels,
 	and a list that contains the counts of each type of solar flare.
+	
+	returns a normalized tensor of inputs, the labels for training/validation data or the ID for test data, and a list of weights.
 	'''
 	# This dataset is heavily skewed, so we need to get the number of each type of flare.
 	# This also lets us get the number of lines in the file with a sum.
@@ -117,14 +120,17 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 		# Load the line as a dictionary. Row is an integer place and v is a smaller dictionary.
 		d: dict = json.loads(line)
 		row += 1
-		for _, v in d.items(): # we use the _ because we don't want the ID.
+		for id, v in d.items(): 
 			if earlyStop > 0 and row >= earlyStop:
 				# If we don't want the entire dataset, stop loading more than we want
 				return tnsr, labels, weights
 			if row % 100 == 0:
 				print(f'Now loading event {row}/{length}')
 			# append the label to our list
-			labels.append(flares[v['label']])
+			if test:
+				labels.append(id)
+			else:
+				labels.append(flares[v['label']])
 			
 			# Break each individual dictionary into dictionaries of observations
 			# Key is the string in magDict, and timeDict is a dictionary of observations over time

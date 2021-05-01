@@ -39,6 +39,14 @@ magDict = {
 }
 flares = {'X':0, 'M':1, 'C':2, 'B':3, 'Q':4}
 
+def norm33(X)
+	'''
+	A simple normalizer that normalizes each data field to be between 0 and 1
+	'''
+	for i in range(X.shape[1]): # the number of types of measurements
+		X[:,i,:] -= torch.min(X[:,i,:]
+		X[:,i,:] /= torch.max(X[:,i,:]).item()
+	return X
 
 def counter(filename, lines=-1):
 	'''
@@ -131,7 +139,7 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 	file.close()
 	# This might be a good place to perform some post processing, but that's a question for another day.
 	# Famous last words.
-	return tnsr, labels, weights
+	return norm33(tnsr), labels, weights
 
 
 def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda'):
@@ -186,4 +194,4 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 				for timeStamp, measurement in timeDict.items():
 					tnsr[pos][location][int(timeStamp)] = measurement
 	print(f'{pos+1} lines loaded.')
-	return tnsr, labels
+	return norm33(tnsr), labels

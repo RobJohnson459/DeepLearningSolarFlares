@@ -3,39 +3,39 @@ import torch
 import json
 import numpy as np
 magDict = {
-    'TOTUSJH': 0,
-    'TOTBSQ': 1,
-    'TOTPOT': 2,
-    'TOTUSJZ': 3,
-    'ABSNJZH': 4,
-    'SAVNCPP': 5,
-    'USFLUX': 6,
-    'TOTFZ': 7,
-    'MEANPOT': 8,
-    'EPSZ': 9,
-    'SHRGT45': 10,
-    'MEANSHR': 11,
-    'MEANGAM': 12,
-    'MEANGBT': 13,
-    'MEANGBZ': 14,
-    'MEANGBH': 15,
-    'MEANJZH': 16,
-    'TOTFY': 17,
-    'MEANJZD': 18,
-    'MEANALP': 19,
-    'TOTFX': 20,
-    'EPSY': 21,
-    'EPSX': 22,
-    'R_VALUE': 23,
-    'RBZ_VALUE': 24,
-    'RBT_VALUE': 25,
-    'RBP_VALUE': 26,
-    'FDIM': 27,
-    'BZ_FDIM': 28,
-    'BT_FDIM': 29,
-    'BP_FDIM': 30,
-    'PIL_LEN': 31,
-    'XR_MAX': 32
+	'TOTUSJH': 0,
+	'TOTBSQ': 1,
+	'TOTPOT': 2,
+	'TOTUSJZ': 3,
+	'ABSNJZH': 4,
+	'SAVNCPP': 5,
+	'USFLUX': 6,
+	'TOTFZ': 7,
+	'MEANPOT': 8,
+	'EPSZ': 9,
+	'SHRGT45': 10,
+	'MEANSHR': 11,
+	'MEANGAM': 12,
+	'MEANGBT': 13,
+	'MEANGBZ': 14,
+	'MEANGBH': 15,
+	'MEANJZH': 16,
+	'TOTFY': 17,
+	'MEANJZD': 18,
+	'MEANALP': 19,
+	'TOTFX': 20,
+	'EPSY': 21,
+	'EPSX': 22,
+	'R_VALUE': 23,
+	'RBZ_VALUE': 24,
+	'RBT_VALUE': 25,
+	'RBP_VALUE': 26,
+	'FDIM': 27,
+	'BZ_FDIM': 28,
+	'BT_FDIM': 29,
+	'BP_FDIM': 30,
+	'PIL_LEN': 31,
+	'XR_MAX': 32
 }
 flares = {'X':0, 'M':1, 'C':2, 'B':3, 'Q':4}
 
@@ -195,3 +195,125 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 					tnsr[pos][location][int(timeStamp)] = measurement
 	print(f'{pos+1} lines loaded.')
 	return norm33(tnsr), labels
+
+def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, *modelArgs, lr=0.0001, epochs=50,
+		  pmodel = False, pstateDict = False, pindvLoss = False, pmodelDict = False, pvalidateOut = False,
+		  pbl = False, checkClone = False, pbalApp = False, **modelKwargs):
+	
+	'''
+	function call: 
+	train(modelModule, inputs, labels, weight, valSets, valLabels, valweight, *modelArgs, lr=0.0001, 
+		  pmodel = False, pstateDict = False, pindvLoss = False, pmodelDict = False, pvalidateOut = False,
+		  pbl = False, checkClone = False **modelKwargs):
+	
+	modelModule is the nn.module form of the network you want trained
+	inputs and labels are the Xs and Ys respectively of the training data
+	weights are the weights to use for the cross entropy loss function - see more in counter documentation
+	valinputs, valLabels, and valweight are the same fields but for our validation set
+	lr is the learning rate for the optimizer
+	Epochs is the amount of times a network is trained on the data
+	pmodel prints the model if True, defaults to False
+	pstateDict prints the state dict for the optimizer if True, defaults to False
+	pindvLoss prints the individual loss for each minibatch if True, defaults to False
+	pmodelDict prints the state dictionary for the model if True, defaults to False
+	pvalidateOut prints all errors and accuracies of the validation set if True, defaults to False
+	pbl prints the batch loss at declaration time if True, defaults to False
+	checkClone prints the maximum and the minimum difference between the initial model and the current iteration 
+		of the model if True, defaults to False
+	pblApp checks the validation appending
+	modelArgs and modelKwargs are the arguments for the model and the keyword arguments of the model, repsectivley
+	'''
+
+	# Define the model
+	model = modelModule(*modelArgs, **modelKwargs)
+	# if we are going to check this against itself to make sure it is learning, we need to be able to come back
+	if checkClone: 
+		PATH = './.cloneModel.pth'
+		torch.save(model.state_dict(), PATH)
+	if pmodel: print(model)
+	
+	# Define loss functions
+	if weight is not None: weight = torch.Tensor(weight)
+	lfc = nn.CrossEntropyLoss(weight=weight)
+	if valweight is not None: valweight = torch.Tensor(valweight)
+	valLoss = nn.CrossEntropyLoss(weight=valweight)
+
+	
+
+	
+	# Hyperparameters
+	batch = 64
+	
+	# Start a dataloader object
+	data = list(zip(inputs,labels))
+	val = list(zip(valSets,valLabels))
+	loader = DataLoader(data, batch_size = batch, num_workers=4)
+	valLoader = DataLoader(val, batch_size = 1, num_workers=4)
+	opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.25)
+	if pstateDict: print(opt.state_dict())
+
+	for epoch in range(epochs):
+		model.train()
+		batch_loss = []
+		if pbl: print(batch_loss)
+		for (xtrain,ytrain) in loader:
+			opt.zero_grad()
+			if pstateDict: print('Opt dict post zero grad:', '================',opt.state_dict(), sep='\n')
+			output = model(xtrain)
+			loss = lfc(output,ytrain)
+			if pindvLoss: print(loss)
+			loss.backward()
+			if pstateDict: print('Opt dict post backward:', '================',opt.state_dict(), sep='\n')
+			if pmodelDict: print(model.state_dict())
+			opt.step()
+			if pstateDict: print('Opt dict post step:', '================',opt.state_dict(), sep='\n')
+			if pstateDict or pmodelDict: print('\n\n\n\n\n')
+			batch_loss.append(loss.item())
+		print(f'The training loss for epoch {epoch+1}/{epochs} was {np.mean(batch_loss)}')
+		if pbl: print(batch_loss)
+		
+		model.eval()
+		balanced = [[],[],[],[],[]]
+		batchLoss = []
+		unbalanced = []
+		
+		for (xval,yval) in valLoader:
+			output = model(xval)
+			loss = valLoss(output,yval)
+			batchLoss.append(loss.item())
+			guesses = torch.argmax(output,1)
+			if pvalidateOut : print('output: \n',output)
+			corrects = yval.clone().detach() == guesses
+			if pvalidateOut: print(yval.clone().detach(), guesses)
+			if pvalidateOut: print(corrects.detach())
+			if pvalidateOut: print('===========================\n\n\n')
+			unbalanced.append([1 if correct else 0 for correct in corrects.detach()])
+		
+			for i, ans in enumerate(yval):
+				if pbalApp: print(i,ans, guesses[i], corrects[i])
+				balanced[ans].append(corrects[i])
+		
+		balanced = [np.mean(i) for i in balanced]
+		balancedAccuracy = np.mean(balanced)
+		
+		print(f'The total balanced accuracy for validation was {balancedAccuracy}')
+		print(f'The validation loss was :   {epoch+1}/{epochs} was {np.mean(batchLoss)}')
+		print(f'The unbalanced validation accuracy is {np.mean(unbalanced)}')
+		print(f'The accuracy for each is {balanced}')	   
+		
+		
+		if checkClone:
+			fives = modelModule(*modelArgs, **modelKwargs)
+			fives.load_state_dict(torch.load(PATH))
+			s=2
+			feature_extraction1 = [child for child in model.children()]
+			print(feature_extraction1[s])
+			feature_extraction2 = [child for child in fives.children()]
+			print(feature_extraction2[s])
+			print(torch.max(feature_extraction1[s].weight - feature_extraction2[s].weight).detach())
+			print(torch.min(feature_extraction1[s].weight - feature_extraction2[s].weight).detach())
+		print('\n\n=============End Epoch==============\n\n')
+	if pstateDict: print(opt.state_dict())
+
+
+	return model

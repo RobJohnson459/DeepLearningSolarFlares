@@ -5,6 +5,7 @@ import json
 import numpy as np
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 magDict = {
 	'TOTUSJH': 0,
 	'TOTBSQ': 1,
@@ -206,7 +207,7 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 
 def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, *modelArgs, lr=0.0001, epochs=50,
 		  pmodel = False, pstateDict = False, pindvLoss = False, pmodelDict = False, pvalidateOut = False,
-		  pbl = False, checkClone = False, pbalApp = False, **modelKwargs):
+		  pbl = False, checkClone = False, clone=0, pbalApp = False, **modelKwargs):
 	
 	'''
 	function call: 
@@ -260,6 +261,8 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 	opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.25)
 	if pstateDict: print(opt.state_dict())
 
+	lossTracker = []
+
 	for epoch in range(epochs):
 		model.train()
 		batch_loss = []
@@ -304,6 +307,8 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 		balanced = [np.mean(i) for i in balanced]
 		balancedAccuracy = np.mean(balanced)
 		
+		lossTracker.append(np.mean(batchLoss))
+
 		print(f'The total balanced accuracy for validation was {balancedAccuracy}')
 		print(f'The validation loss was :   {epoch+1}/{epochs} was {np.mean(batchLoss)}')
 		print(f'The unbalanced validation accuracy is {np.mean(unbalanced)}')
@@ -313,27 +318,38 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 		if checkClone:
 			fives = modelModule(*modelArgs, **modelKwargs)
 			fives.load_state_dict(torch.load(PATH))
-			s=2
 			feature_extraction1 = [child for child in model.children()]
-			print(feature_extraction1[s])
+			print(feature_extraction1[clone])
 			feature_extraction2 = [child for child in fives.children()]
-			print(feature_extraction2[s])
-			print(torch.max(feature_extraction1[s].weight - feature_extraction2[s].weight).detach())
-			print(torch.min(feature_extraction1[s].weight - feature_extraction2[s].weight).detach())
+			print(feature_extraction2[clone])
+			print(torch.max(feature_extraction1[clone].weight - feature_extraction2[s].weight).detach())
+			print(torch.min(feature_extraction1[clone].weight - feature_extraction2[s].weight).detach())
 		print('\n\n=============End Epoch==============\n\n')
 	if pstateDict: print(opt.state_dict())
 
+	plt.plot(lossTracker)
+	plt.show()
 
 	return model
 
+
 def getTotalAccuracy(m1, m2, m3, x, y): #, unbalanced=True
-	o1 = torch.argmax(m1(x))
-	o2 = torch.argmax(m2(x))
-	o3 = torch.argmax(m3(x))
-	c1 = o1 == y.clone().detach()
-	c2 = o2 == y.clone().detach()
-	c3 = o3 == y.clone().detach()
-	return np.mean(np.mean(c3),np.mean(c2),np.mean(c1))
+        o1 = torch.argmax(m1(x),dim=1)
+        o2 = torch.argmax(m2(x),dim=1)
+        o3 = torch.argmax(m3(x),dim=1)
+        y = torch.Tensor(y)
+        c1 = o1 == y.clone().detach()
+        c2 = o2 == y.clone().detach()
+        c3 = o3 == y.clone().detach()
+        return np.mean([meaner(c3), meaner(c2), meaner(c1)])
+
+
+def meaner(tnsr):
+    counter = 0
+    for i in tnsr:
+        if i: counter += 1
+    return counter/tnsr.shape[0]
+
 
 def tester(model, pathToWrite=None):
 	if pathToWrite is None:

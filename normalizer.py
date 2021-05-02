@@ -50,7 +50,8 @@ def norm33(X):
 	for i in range(X.shape[1]): # the number of types of measurements
 		X[:,i,:] -= torch.min(X[:,i,:])
 		X[:,i,:] /= torch.max(X[:,i,:]).item()
-	return torch.nan_to_num(X)
+	# return torch.nan_to_num(X)
+	return X
 
 def counter(filename, lines=-1):
 	'''

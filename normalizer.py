@@ -207,7 +207,8 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 
 def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, *modelArgs, lr=0.0001, epochs=50,
 		  pmodel = False, pstateDict = False, pindvLoss = False, pmodelDict = False, pvalidateOut = False,
-		  pbl = False, checkClone = False, clone=0, pbalApp = False, **modelKwargs):
+		  pbl = False, checkClone = False, clone=0, pbalApp = False, plotLoss = True, returnLoss = False, 
+		  **modelKwargs):
 	
 	'''
 	function call: 
@@ -327,10 +328,35 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 		print('\n\n=============End Epoch==============\n\n')
 	if pstateDict: print(opt.state_dict())
 
-	plt.plot(lossTracker)
-	plt.show()
 
+	if plotLoss:
+		plt.plot(lossTracker)
+		plt.show()
+
+	if returnLoss: return model, loss
 	return model
+
+def cfvalidation(tripList, module, x1, y1, x2, y2, x3, y3, **trainKwargs):
+	bestImprove = -100
+	bestArgs = []
+	lowestLoss = 100
+	lowLossArgs = []
+	for (modelArgs, modelKwargs, lr) in tripList:
+		_, l1 = trainer(module, torch.cat((x1, x2), dim=0), y1+y2, None, x3, y3, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
+		_, l2 = trainer(module, torch.cat((x3, x2), dim=0), y3+y2, None, x1, y1, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
+		_, l3 = trainer(module, torch.cat((x1, x3), dim=0), y1+y3, None, x2, y2, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
+		plt.plot(l1)
+		plt.plot(l2)
+		plt.plot(l3)
+		plt.show()
+		for l in [l1,l2,l3]:
+			if l[1] - l[-1] > bestImprove:
+				bestImprove = l[1] - l[-1]
+				bestArgs = [modelArgs, modelKwargs, lr]
+			if min(l) < lowestLoss:
+				lowestLoss = min(l)
+				lowLossArgs = [modelArgs, modelKwargs, lr]
+	return bestArgs, lowLossArgs
 
 
 def getTotalAccuracy(m1, m2, m3, x, y): #, unbalanced=True

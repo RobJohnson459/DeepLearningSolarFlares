@@ -50,7 +50,7 @@ def norm33(X):
 	for i in range(X.shape[1]): # the number of types of measurements
 		X[:,i,:] -= torch.min(X[:,i,:])
 		X[:,i,:] /= torch.max(X[:,i,:]).item()
-	return X
+	return torch.nan_to_num(X)
 
 def counter(filename, lines=-1):
 	'''
@@ -102,7 +102,7 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 	# This also lets us get the number of lines in the file with a sum.
 	# This function also ignores any lines with a value of NaN.
 	# This function also only gets the amount of lines we either want or need - it will stop at the earlier of earlystop and the end of file.
-	weights = counter(path, earlyStop)
+	if not test: weights = counter(path, earlyStop)
 	length = np.sum(weights)
 	# Check when we want to stop - the end of the file or earlier.
 	if earlyStop < 0: length = lines
@@ -118,7 +118,7 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 		
 	row = -1
 	for line in file:
-		if 'nan' in line or "NaN" in line:
+		if not test and 'nan' in line or "NaN" in line:
 			continue
 		# Load the line as a dictionary. Row is an integer place and v is a smaller dictionary.
 		d: dict = json.loads(line)
@@ -148,6 +148,7 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 	file.close()
 	# This might be a good place to perform some post processing, but that's a question for another day.
 	# Famous last words.
+	if test: return norm33(tnsr), labels
 	return norm33(tnsr), labels, weights
 
 
@@ -390,7 +391,7 @@ def tester(model, pathToWrite=None):
 	if pathToWrite is None:
 		pathToWrite = f'results/submission{datetime.now().strftime("%d_%H:%M")}.csv'
 	# Get test data
-	test, ids, _ = getDataFromJSON(path='data/test_4_5_data.json', test=True, device=device)
+	test, ids = getDataFromJSON(path='data/test_4_5_data.json', test=True, device=device)
 	# get our guesses from the network
 	guesses = torch.argmax(model(test))
 	assert len(ids) == guesses.shape

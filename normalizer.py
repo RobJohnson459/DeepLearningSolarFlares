@@ -208,7 +208,7 @@ def subSample(path="data/train_partition1_data.json", earlyStop=-1, device='cuda
 def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, *modelArgs, lr=0.0001, epochs=50,
 		  pmodel = False, pstateDict = False, pindvLoss = False, pmodelDict = False, pvalidateOut = False,
 		  pbl = False, checkClone = False, clone=0, pbalApp = False, plotLoss = True, returnLoss = False, 
-		  **modelKwargs):
+		  noprint = False, **modelKwargs):
 	
 	'''
 	function call: 
@@ -281,7 +281,7 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 			if pstateDict: print('Opt dict post step:', '================',opt.state_dict(), sep='\n')
 			if pstateDict or pmodelDict: print('\n\n\n\n\n')
 			batch_loss.append(loss.item())
-		print(f'The training loss for epoch {epoch+1}/{epochs} was {np.mean(batch_loss)}')
+		if not noprint: print(f'The training loss for epoch {epoch+1}/{epochs} was {np.mean(batch_loss)}')
 		if pbl: print(batch_loss)
 		
 		model.eval()
@@ -310,10 +310,10 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 		
 		lossTracker.append(np.mean(batchLoss))
 
-		print(f'The total balanced accuracy for validation was {balancedAccuracy}')
-		print(f'The validation loss was :   {epoch+1}/{epochs} was {np.mean(batchLoss)}')
-		print(f'The unbalanced validation accuracy is {np.mean(unbalanced)}')
-		print(f'The accuracy for each is {balanced}')	   
+		if not noprint: print(f'The total balanced accuracy for validation was {balancedAccuracy}')
+		if not noprint: print(f'The validation loss was :   {epoch+1}/{epochs} was {np.mean(batchLoss)}')
+		if not noprint: print(f'The unbalanced validation accuracy is {np.mean(unbalanced)}')
+		if not noprint: print(f'The accuracy for each is {balanced}')	   
 		
 		
 		if checkClone:
@@ -325,7 +325,7 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 			print(feature_extraction2[clone])
 			print(torch.max(feature_extraction1[clone].weight - feature_extraction2[s].weight).detach())
 			print(torch.min(feature_extraction1[clone].weight - feature_extraction2[s].weight).detach())
-		print('\n\n=============End Epoch==============\n\n')
+		if not noprint: print('\n\n=============End Epoch==============\n\n')
 	if pstateDict: print(opt.state_dict())
 
 
@@ -333,22 +333,31 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 		plt.plot(lossTracker)
 		plt.show()
 
-	if returnLoss: return model, loss
+	if returnLoss: return model, lossTracker
 	return model
 
-def cfvalidation(tripList, module, x1, y1, x2, y2, x3, y3, **trainKwargs):
+def cfvalidation(tripList, module, x1, y1, x2, y2, x3, y3, epochs):
+	print('To save on memory, this will only print graphs, parameters used, how many validations have been performed, and a 123 to show where it is.')
 	bestImprove = -100
 	bestArgs = []
 	lowestLoss = 100
 	lowLossArgs = []
+	i=0
 	for (modelArgs, modelKwargs, lr) in tripList:
-		_, l1 = trainer(module, torch.cat((x1, x2), dim=0), y1+y2, None, x3, y3, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
-		_, l2 = trainer(module, torch.cat((x3, x2), dim=0), y3+y2, None, x1, y1, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
-		_, l3 = trainer(module, torch.cat((x1, x3), dim=0), y1+y3, None, x2, y2, None, *modelArgs, lr=lr, **trainKwargs, **modelKwargs, returnLoss = True, plotLoss=False)
+		print(modelArgs, modelKwargs, lr)
+		i += 1
+		print(f'epoch {i}/{len(tripList)}')
+		print('1', end='')
+		_, l1 = trainer(module, torch.cat((x1, x2), dim=0), y1+y2, None, x3, y3, None, *modelArgs, lr=lr, epochs=epochs, **modelKwargs, returnLoss = True, plotLoss=False, noprint=True)
+		print('2', end='')
+		_, l2 = trainer(module, torch.cat((x3, x2), dim=0), y3+y2, None, x1, y1, None, *modelArgs, lr=lr, epochs=epochs, **modelKwargs, returnLoss = True, plotLoss=False, noprint=True)
+		print('3', end='')
+		_, l3 = trainer(module, torch.cat((x1, x3), dim=0), y1+y3, None, x2, y2, None, *modelArgs, lr=lr, epochs=epochs, **modelKwargs, returnLoss = True, plotLoss=False, noprint=True)
 		plt.plot(l1)
 		plt.plot(l2)
 		plt.plot(l3)
 		plt.show()
+		print('=========================================================')
 		for l in [l1,l2,l3]:
 			if l[1] - l[-1] > bestImprove:
 				bestImprove = l[1] - l[-1]

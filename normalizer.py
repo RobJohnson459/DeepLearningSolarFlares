@@ -6,6 +6,9 @@ import numpy as np
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
+
+num_workers = 7 # Change this to be one less than threads your computer runs
+
 magDict = {
 	'TOTUSJH': 0,
 	'TOTBSQ': 1,
@@ -259,8 +262,8 @@ def trainer(modelModule, inputs, labels, weight, valSets, valLabels, valweight, 
 	# Start a dataloader object
 	data = list(zip(inputs,labels))
 	val = list(zip(valSets,valLabels))
-	loader = DataLoader(data, batch_size = batch, num_workers=4)
-	valLoader = DataLoader(val, batch_size = 1, num_workers=4)
+	loader = DataLoader(data, batch_size = batch, num_workers=num_workers)
+	valLoader = DataLoader(val, batch_size = 1, num_workers=num_workers)
 	opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.25)
 	if pstateDict: print(opt.state_dict())
 

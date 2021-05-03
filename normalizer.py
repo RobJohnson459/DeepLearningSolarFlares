@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
-num_workers = 7 # Change this to be one less than threads your computer runs
+num_workers = 2 # Change this to be one less than threads your computer runs
 
 magDict = {
 	'TOTUSJH': 0,

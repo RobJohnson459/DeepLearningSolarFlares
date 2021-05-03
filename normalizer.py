@@ -56,7 +56,7 @@ def norm33(X):
 	# return torch.nan_to_num(X)
 	return X
 
-def counter(filename, lines=-1):
+def counter(filename, lines=-1, test=False):
 	'''
 	This function counts the different types of flares in <filename> to help calculate the weights.
 	I'm not totally sure what a good weight calculation is, so here are some ideas
@@ -77,6 +77,9 @@ def counter(filename, lines=-1):
 
 	hist = [0,0,0,0,0]
 	for line in file:
+		if test:
+			hist[0] += 1
+			continue
 		if 'nan' in line or 'NaN' in line:
 			continue
 		# This line splits the line into keys and such, then splits that for values, then gets the correct character out
@@ -106,11 +109,11 @@ def getDataFromJSON(path="data/train_partition1_data.json", earlyStop=-1, device
 	# This also lets us get the number of lines in the file with a sum.
 	# This function also ignores any lines with a value of NaN.
 	# This function also only gets the amount of lines we either want or need - it will stop at the earlier of earlystop and the end of file.
-	if not test: weights = counter(path, earlyStop)
+
+	weights = counter(path, earlyStop, test = test)
 	length = np.sum(weights)
 	# Check when we want to stop - the end of the file or earlier.
-	if earlyStop < 0: length = lines
-	else: length = min(earlyStop, lines)
+	if earlyStop > 0: length = min(earlyStop, length) 
 	
 	# Get the file and open it. 
 	file = open(path)	
@@ -395,7 +398,7 @@ def tester(model, pathToWrite=None):
 	if pathToWrite is None:
 		pathToWrite = f'results/submission{datetime.now().strftime("%d_%H:%M")}.csv'
 	# Get test data
-	test, ids = getDataFromJSON(path='data/test_4_5_data.json', test=True, device=device)
+	test, ids = getDataFromJSON(path='data/test_4_5_data.json', test=True, device='cpu') # run on the CPU, we only need to do this once
 	# get our guesses from the network
 	guesses = torch.argmax(model(test))
 	assert len(ids) == guesses.shape
